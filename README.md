@@ -19,25 +19,32 @@ https://product-browser.onrender.com
 ## What I Built
 
 * A FastAPI backend to browse products.
-* A product table with `id`, `name`, `category`, `price`, `created_at`, and `updated_at`.
+* A product table containing:
+
+  * `id`
+  * `name`
+  * `category`
+  * `price`
+  * `created_at`
+  * `updated_at`
 * A seed script to generate approximately **200,000 products**.
-* Fast pagination using cursor/keyset pagination.
+* Fast cursor-based (keyset) pagination.
 * Category filtering.
 * A simple browser UI as a bonus.
-* Tests for API and pagination behavior.
+* Automated tests for API behavior and pagination stability.
 
 ---
 
 ## Tech Stack
 
-* **Python** - Main programming language
-* **FastAPI** - Backend API framework
-* **SQLAlchemy** - ORM and query builder
-* **SQLite** - Local development database
-* **PostgreSQL** - Production database (Neon/Render/Supabase)
-* **Pydantic** - Request and response validation
-* **Pytest** - Automated testing
-* **Uvicorn** - ASGI server
+* **Python** – Main programming language
+* **FastAPI** – Backend API framework
+* **SQLAlchemy** – ORM and query builder
+* **SQLite** – Local development database
+* **PostgreSQL** – Production database (Neon / Render / Supabase)
+* **Pydantic** – Request and response validation
+* **Pytest** – Automated testing
+* **Uvicorn** – ASGI server
 
 ---
 
@@ -45,7 +52,7 @@ https://product-browser.onrender.com
 
 The primary requirement was to ensure pagination remains fast and correct even when products are inserted or updated while users are browsing.
 
-I used **keyset (cursor-based) pagination** instead of offset pagination.
+I implemented **keyset (cursor-based) pagination** instead of traditional offset pagination.
 
 Offset pagination example:
 
@@ -53,15 +60,15 @@ Offset pagination example:
 page=1000&limit=50
 ```
 
-This becomes slower for large datasets because the database needs to skip many rows.
+For large datasets, offset pagination becomes slower because the database needs to skip many rows.
 
-Keyset pagination uses a cursor:
+Cursor pagination uses:
 
 ```text
 /products?limit=50&cursor=...
 ```
 
-This is faster because the database continues from the last seen product using indexed columns.
+This approach is faster because queries continue from the last retrieved record using indexed columns.
 
 Products are sorted by:
 
@@ -69,13 +76,9 @@ Products are sorted by:
 created_at DESC, id DESC
 ```
 
-This ensures newest products appear first.
+This guarantees newest products appear first.
 
-I intentionally use `created_at` as the pagination order because it is immutable after creation.
-
-`updated_at` may change when a product is modified, but it is not used for pagination.
-
-If pagination relied on `updated_at`, records could move between pages and cause duplicates or missing items.
+The project intentionally uses `created_at` as the pagination key because it never changes after insertion.
 
 The cursor stores:
 
@@ -86,11 +89,9 @@ snapshot_created_at
 snapshot_id
 ```
 
-The snapshot boundary is captured from the first page.
+A snapshot boundary is captured from the first page.
 
-If new products are inserted while users browse, they are newer than the snapshot and do not suddenly appear midway through the session.
-
-Updates do not affect `created_at`, ensuring products never jump between pages.
+Newly inserted products do not suddenly appear in the middle of an active browsing session, preventing duplicates and missing records.
 
 ---
 
@@ -98,12 +99,12 @@ Updates do not affect `created_at`, ensuring products never jump between pages.
 
 ```text
 app/main.py          FastAPI routes
-app/models.py        Product database model and indexes
+app/models.py        Product model and indexes
 app/schemas.py       Request and response schemas
-app/crud.py          Product create, update, filter, pagination logic
+app/crud.py          CRUD and pagination logic
 app/database.py      Database connection
-app/config.py        App settings
-app/utils.py         Cursor encode/decode helpers
+app/config.py        Application settings
+app/utils.py         Cursor helpers
 
 scripts/seed.py      Product generation script
 
@@ -111,8 +112,9 @@ static/index.html    Simple browser UI
 
 tests/               Automated tests
 
-render.yaml          Render deployment config
-Dockerfile           Docker deployment config
+render.yaml          Render deployment configuration
+Dockerfile           Docker deployment configuration
+
 requirements.txt
 README.md
 ```
@@ -127,7 +129,7 @@ README.md
 GET /health
 ```
 
-Checks whether the server is running.
+Checks whether the application is running.
 
 ---
 
@@ -137,8 +139,6 @@ Checks whether the server is running.
 GET /products?limit=50&category=books&cursor=...
 ```
 
-Returns products sorted newest first.
-
 Parameters:
 
 * `limit`
@@ -146,6 +146,8 @@ Parameters:
 * `cursor`
 
 All parameters are optional.
+
+Returns products sorted newest first.
 
 ---
 
@@ -155,7 +157,7 @@ All parameters are optional.
 GET /categories
 ```
 
-Returns available categories.
+Returns all available categories.
 
 ---
 
@@ -181,43 +183,45 @@ Updates an existing product.
 
 ## Local Setup
 
-Open PowerShell:
+Clone the repository:
 
-```powershell
-cd C:\Users\komal\Desktop\product-browser
+```bash
+git clone https://github.com/KomalPatil4717/Product-Browser.git
+
+cd Product-Browser
 ```
 
 Install dependencies:
 
-```powershell
-python -m pip install -r requirements.txt
+```bash
+pip install -r requirements.txt
 ```
 
-Generate sample products:
+Generate sample data:
 
-```powershell
+```bash
 python scripts/seed.py --count 200 --reset
 ```
 
 Generate assignment dataset:
 
-```powershell
+```bash
 python scripts/seed.py --count 200000 --reset
 ```
 
-Run server:
+Run the application:
 
-```powershell
-python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8001
+```bash
+uvicorn app.main:app --reload
 ```
 
-Open UI:
+Open the UI:
 
 ```text
 http://127.0.0.1:8001
 ```
 
-Swagger Docs:
+Swagger Documentation:
 
 ```text
 http://127.0.0.1:8001/docs
@@ -227,27 +231,27 @@ http://127.0.0.1:8001/docs
 
 ## Run Tests
 
-```powershell
-python -m pytest
+```bash
+pytest
 ```
 
 ---
 
 ## Database
 
-By default, the project uses SQLite locally.
+By default, the project uses SQLite locally:
 
 ```text
 products.db
 ```
 
-For production:
+For production environments, PostgreSQL can be used with:
 
-* Neon PostgreSQL
+* Neon
 * Supabase
 * Render PostgreSQL
 
-Create `.env`
+Example `.env` file:
 
 ```env
 DATABASE_URL=postgresql+psycopg://USER:PASSWORD@HOST:5432/DBNAME
@@ -257,9 +261,9 @@ DATABASE_URL=postgresql+psycopg://USER:PASSWORD@HOST:5432/DBNAME
 
 ## Deployment
 
-This project includes `render.yaml` and can be deployed easily on Render.
+The project includes a `render.yaml` file and can be deployed directly on Render.
 
-Environment variable:
+Required environment variable:
 
 ```text
 DATABASE_URL
@@ -279,7 +283,7 @@ After deployment, run the seed script once to populate approximately **200,000 p
 
 ---
 
-## What I Would Improve With More Time
+## Future Improvements
 
 * Alembic migrations
 * Authentication
@@ -292,7 +296,7 @@ After deployment, run the seed script once to populate approximately **200,000 p
 
 ## AI Usage Note
 
-I used AI tools to understand cursor pagination concepts, improve seed generation, debug deployment issues, and structure documentation.
+AI tools were used for research, deployment debugging, and documentation improvements.
 
 All final code was reviewed, tested, and fully understood before submission.
 
