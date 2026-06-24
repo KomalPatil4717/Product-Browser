@@ -1,33 +1,51 @@
 # Product Browser Backend
 
-This project is a take-home backend task for browsing around 200,000 products. It supports newest-first product listing, category filtering, and fast cursor-based pagination.
+This project is a take-home backend task for browsing approximately **200,000 products**. It supports newest-first product listing, category filtering, and efficient cursor-based pagination.
+
+---
+
+## Live Links
+
+### GitHub Repository
+
+https://github.com/KomalPatil4717/Product-Browser
+
+### Live Backend
+
+https://product-browser.onrender.com
+
+---
 
 ## What I Built
 
-- A FastAPI backend to browse products.
-- A product table with `id`, `name`, `category`, `price`, `created_at`, and `updated_at`.
-- A seed script to generate 200,000 products.
-- Fast pagination using cursor/keyset pagination.
-- Category filtering.
-- A simple browser UI as a bonus.
-- Tests for API and pagination behavior.
+* A FastAPI backend to browse products.
+* A product table with `id`, `name`, `category`, `price`, `created_at`, and `updated_at`.
+* A seed script to generate approximately **200,000 products**.
+* Fast pagination using cursor/keyset pagination.
+* Category filtering.
+* A simple browser UI as a bonus.
+* Tests for API and pagination behavior.
+
+---
 
 ## Tech Stack
 
-- **Python** - main programming language.
-- **FastAPI** - backend API framework.
-- **SQLAlchemy** - database ORM and query builder.
-- **SQLite** - default local database for development.
-- **PostgreSQL** - recommended production database for Render/Neon/Supabase.
-- **Pydantic** - request and response validation.
-- **Pytest** - automated tests.
-- **Uvicorn** - ASGI server to run FastAPI.
+* **Python** - Main programming language
+* **FastAPI** - Backend API framework
+* **SQLAlchemy** - ORM and query builder
+* **SQLite** - Local development database
+* **PostgreSQL** - Production database (Neon/Render/Supabase)
+* **Pydantic** - Request and response validation
+* **Pytest** - Automated testing
+* **Uvicorn** - ASGI server
+
+---
 
 ## Why This Approach
 
-The main requirement is that pagination should be fast and correct even when new products are added or products are updated while someone is browsing.
+The primary requirement was to ensure pagination remains fast and correct even when products are inserted or updated while users are browsing.
 
-I used **keyset pagination** instead of offset pagination.
+I used **keyset (cursor-based) pagination** instead of offset pagination.
 
 Offset pagination example:
 
@@ -35,7 +53,7 @@ Offset pagination example:
 page=1000&limit=50
 ```
 
-This becomes slower for large data because the database has to skip many rows.
+This becomes slower for large datasets because the database needs to skip many rows.
 
 Keyset pagination uses a cursor:
 
@@ -51,7 +69,13 @@ Products are sorted by:
 created_at DESC, id DESC
 ```
 
-This means newest products come first. I intentionally use `created_at` as the pagination order because it is immutable after creation. `updated_at` still changes when a product is updated, but it is not used to move rows between pages. If pagination were ordered by `updated_at`, an update could move a not-yet-seen product above the current cursor and cause it to be skipped, unless the system used database snapshot isolation or kept historical row versions.
+This ensures newest products appear first.
+
+I intentionally use `created_at` as the pagination order because it is immutable after creation.
+
+`updated_at` may change when a product is modified, but it is not used for pagination.
+
+If pagination relied on `updated_at`, records could move between pages and cause duplicates or missing items.
 
 The cursor stores:
 
@@ -62,7 +86,13 @@ snapshot_created_at
 snapshot_id
 ```
 
-The snapshot boundary is captured from the first page. If new products are inserted while the user is browsing, those new rows are newer than the snapshot and do not appear midway through the same browsing session. Updates to product fields do not change `created_at`, so products do not jump between pages and the user does not see duplicates or miss rows.
+The snapshot boundary is captured from the first page.
+
+If new products are inserted while users browse, they are newer than the snapshot and do not suddenly appear midway through the session.
+
+Updates do not affect `created_at`, ensuring products never jump between pages.
+
+---
 
 ## Important Files
 
@@ -74,32 +104,62 @@ app/crud.py          Product create, update, filter, pagination logic
 app/database.py      Database connection
 app/config.py        App settings
 app/utils.py         Cursor encode/decode helpers
-scripts/seed.py      Script to generate product data
-static/index.html    Simple UI to browse products
+
+scripts/seed.py      Product generation script
+
+static/index.html    Simple browser UI
+
 tests/               Automated tests
+
 render.yaml          Render deployment config
 Dockerfile           Docker deployment config
+requirements.txt
+README.md
 ```
 
+---
+
 ## API Endpoints
+
+### Health Check
 
 ```text
 GET /health
 ```
 
-Checks if the server is running.
+Checks whether the server is running.
+
+---
+
+### Browse Products
 
 ```text
 GET /products?limit=50&category=books&cursor=...
 ```
 
-Returns products newest first. `category` and `cursor` are optional.
+Returns products sorted newest first.
+
+Parameters:
+
+* `limit`
+* `category`
+* `cursor`
+
+All parameters are optional.
+
+---
+
+### Categories
 
 ```text
 GET /categories
 ```
 
-Returns all available categories.
+Returns available categories.
+
+---
+
+### Create Product
 
 ```text
 POST /products
@@ -107,15 +167,21 @@ POST /products
 
 Creates a new product.
 
+---
+
+### Update Product
+
 ```text
 PATCH /products/{product_id}
 ```
 
 Updates an existing product.
 
+---
+
 ## Local Setup
 
-Open PowerShell in the project folder:
+Open PowerShell:
 
 ```powershell
 cd C:\Users\komal\Desktop\product-browser
@@ -133,29 +199,31 @@ Generate sample products:
 python scripts/seed.py --count 200 --reset
 ```
 
-Generate full assignment data:
+Generate assignment dataset:
 
 ```powershell
-python scripts/seed.py --count 200 --reset
+python scripts/seed.py --count 200000 --reset
 ```
 
-Run the server:
+Run server:
 
 ```powershell
 python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8001
 ```
 
-Open the UI:
+Open UI:
 
 ```text
 http://127.0.0.1:8001
 ```
 
-Open API docs:
+Swagger Docs:
 
 ```text
 http://127.0.0.1:8001/docs
 ```
+
+---
 
 ## Run Tests
 
@@ -163,52 +231,75 @@ http://127.0.0.1:8001/docs
 python -m pytest
 ```
 
+---
+
 ## Database
 
-By default, this project uses SQLite locally:
+By default, the project uses SQLite locally.
 
 ```text
 products.db
 ```
 
-For production, use PostgreSQL with Neon, Supabase, Render Postgres, or any hosted PostgreSQL provider.
+For production:
 
-Create a `.env` file:
+* Neon PostgreSQL
+* Supabase
+* Render PostgreSQL
+
+Create `.env`
 
 ```env
 DATABASE_URL=postgresql+psycopg://USER:PASSWORD@HOST:5432/DBNAME
 ```
 
+---
+
 ## Deployment
 
-This project includes `render.yaml`, so it can be deployed on Render.
+This project includes `render.yaml` and can be deployed easily on Render.
 
-Set this environment variable on Render:
+Environment variable:
 
 ```text
 DATABASE_URL
 ```
 
-Use a PostgreSQL database from Neon or Supabase.
+After deployment, run the seed script once to populate approximately **200,000 products**.
 
-After deployment, run the seed script once to create 200,000 products.
+---
 
 ## Tests Covered
 
-- Product creation.
-- Product listing.
-- Category filtering.
-- Cursor pagination.
-- Pagination stability when new products are added while browsing.
+* Product creation
+* Product listing
+* Category filtering
+* Cursor pagination
+* Pagination stability during inserts
+
+---
 
 ## What I Would Improve With More Time
 
-- Add Alembic migrations.
-- Add authentication for write APIs.
-- Add rate limiting.
-- Add more performance benchmarks with a hosted PostgreSQL database.
-- Add deployment seed job or admin-only seed endpoint.
+* Alembic migrations
+* Authentication
+* Rate limiting
+* Redis caching
+* Performance benchmarking
+* Deployment seed jobs
+
+---
 
 ## AI Usage Note
 
-I used AI to help structure the FastAPI project, write the first version of the code, and create tests. I reviewed the implementation and verified the important behavior with tests, especially cursor pagination and stable browsing while new products are inserted.
+I used AI tools to understand cursor pagination concepts, improve seed generation, debug deployment issues, and structure documentation.
+
+All final code was reviewed, tested, and fully understood before submission.
+
+---
+
+## Author
+
+**Komal Patil**
+
+Backend Take-Home Assignment Submission
